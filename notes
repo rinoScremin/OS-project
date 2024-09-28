@@ -1,0 +1,100 @@
+Real Mode
+Code Segment:
+cs = 0x0000, ip = 0x7C00
+Physical Address = 0x0000 \times 16 + 0x7C00 = 0x7C00
+Data Segment:
+ds = 0x1000, offset = 0x0020
+Physical Address = 0x1000 \times 16 + 0x0020 = 0x10020
+
+
+For example, if cs = 0x1000 and ip = 0x0200, the physical address is:
+Physical Address = 0x1000 * 16 + 0x0200 = 0x10000 + 0x0200 = 0x10200
+
+
+Protected Mode
+Code Segment:
+Segment Selector = 0x08, Base Address = 0x00400000, Offset = 0x00002000
+Linear Address = 0x00400000 + 0x00002000 = 0x00402000
+Data Segment:
+Segment Selector = 0x10, Base Address = 0x00300000, Offset = 0x00001000
+Linear Address = 0x00300000 + 0x00001000 = 0x00301000
+
+
+For example, if the base address of the segment is 0x00400000 and the offset is 0x00002000, the linear address is:
+Linear Address = Base Address + Offset = 0x00400000 + 0x00002000 = 0x00402000
+
+AX = E820h
+EAX = 0000E820h
+EDX = 534D4150h ('SMAP')
+EBX = continuation value or 00000000h to start at beginning of map
+ECX = size of buffer for result, in bytes (should be >= 20 bytes)
+ES:DI -> buffer for result (see #00581)
+
+Return:
+CF clear if successful
+EAX = 534D4150h ('SMAP')
+ES:DI buffer filled
+EBX = next offset from which to copy or 00000000h if all done
+ECX = actual length returned in bytes
+CF set on error
+AH = error code (86h) (see #00496 at INT 15/AH=80h)
+
+Notes: Originally introduced with the Phoenix BIOS v4.0, this function is now supported by most newer BIOSes, since various versions of Windows call it to find out about the system memory. A maximum of 20 bytes will be transferred at one time, even if ECX is higher; some BIOSes (e.g. Award Modular BIOS v4.50PG) ignore the value of ECX on entry, and always copy 20 bytes. Some BIOSes expect the high word of EAX to be clear on entry, i.e. EAX=0000E820h. If this function is not supported, an application should fall back to AX=E802h, AX=E801h, and then AH=88h. The BIOS is permitted to return a nonzero continuation value in EBX and indicate that the end of the list has already been reached by returning with CF set on the next iteration. This function will return base memory and ISA/PCI memory contiguous with base memory as normal memory ranges; it will indicate chipset-defined address holes which are not in use and motherboard memory-mapped devices, and all occurrences of the system BIOS as reserved; standard PC address ranges will not be reported
+
+See Also: AH=C7h - AX=E801h"Phoenix" - AX=E881h - MEM xxxx
+
+
+Format of Phoenix BIOS system memory map address range descriptor:
+
+Offset  Size    Description     (Table 00580)
+00h    QWORD   base address
+08h    QWORD   length in bytes
+10h    DWORD   type of address range (see #00581)
+
+
+(Table 00581)
+Values for System Memory Map address type:
+01h    memory, available to OS
+02h    reserved, not available (e.g. system ROM, memory-mapped device)
+03h    ACPI Reclaim Memory (usable by OS after reading ACPI tables)
+04h    ACPI NVS Memory (OS is required to save this memory between NVS
+sessions)
+other  not defined yet -- treat as Reserved
+
+db (Define Byte):
+
+Represents 1 byte (8 bits).
+Example: db 0x00 represents one zero byte: 00.
+dw (Define Word):
+
+Represents 2 bytes (16 bits).
+Example: dw 0x0000 represents two zero bytes: 00 00.
+dd (Define Double Word):
+
+Represents 4 bytes (32 bits).
+Example: dd 0x00000000 represents four zero bytes: 00 00 00 00.
+dq (Define Quad Word):
+
+Represents 8 bytes (64 bits).
+Example: dq 0x0000000000000000 represents eight zero bytes: 00 00 00 00 00 00 00 00.
+Summary:
+db: 1 byte (2 hex digits)
+dw: 2 bytes (4 hex digits)
+dd: 4 bytes (8 hex digits)
+dq: 8 bytes (16 hex digits)
+
+0x00000000 0x00000000 0x0009fc00 0x00000000 0x00000001          address 0
+
+0x00100000 0x00000000 0xbfee0000 0x00000000 0x00000001          address 0x0000000000100000
+
+0x00000000 0x00000001 0xc0000000 0x00000000 0x00000001          address 0x0000000100000000  
+                                                                    
+0x000b8000 0x00000000 0x00000fff 0x00000000 0x00000001          address 0x00000000000b8000
+
+0000000000100000: 0x00000000 0xb8000000
+
+0000000000100008: 0x00001000 0x00000000 0x00001000 0x01000000
+
+0000000000f00008: 0x00000000 0x00000000 0x00000000 0x01000000
+
+00000000014ff708: 0x00000000 0x00000000 0x00000000 0x01000000
